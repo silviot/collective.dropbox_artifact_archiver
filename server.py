@@ -56,7 +56,8 @@ def post_file(environ):
         with closing(DropboxCommand()) as dc:
             urls = []
             for match in matches:
-                urls.append(dc.get_public_link(path=match).get(u'link', [u'No Link'])[0])
+                url = dc.get_public_link(path=match).get(u'link', [u'No Link'])[0]
+                urls.append(str(url))
             return "\n".join(urls) + '\n'
     finally:
         os.chdir(previous_dir)
@@ -93,3 +94,5 @@ if not os.path.isfile(DROPBOXPY_PATH):
     with open(DROPBOXPY_PATH, 'w') as fh:
         scriptcontents = urllib2.urlopen('http://www.dropbox.com/download?dl=packages/dropbox.py').read()
         fh.write(scriptcontents)
+import sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
