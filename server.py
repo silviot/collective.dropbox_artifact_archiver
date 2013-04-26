@@ -131,7 +131,8 @@ def get_variation_path(environ):
     "Return a path representing chosen variable items in matrix"
     destination = ''
     for key in environ['env_keys']:
-        destination = os.path.join(destination, environ['job_env'][key])
+        if key in environ['job_env']:
+            destination = os.path.join(destination, environ['job_env'][key])
     return destination
 
 
