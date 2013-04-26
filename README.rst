@@ -8,7 +8,8 @@ This prototype wsgi server should be invoked in a .travis.yml::
     after_script:
       - cd parts/test
       - tar cvjf artifacts.tar.bz2 *
-      - curl http://collective_artifacts.rr.nu/submit_artifacts   --form archive=@artifacts.tar.bz2 --form TRAVIS_JOB_ID=$TRAVIS_JOB_ID
+      - curl http://collective_artifacts.rr.nu/submit_artifacts   --form archive=@artifacts.tar.bz2 --form TRAVIS_JOB_ID=$TRAVIS_JOB_ID --form TRAVIS_BUILD_ID=$TRAVIS_BUILD_ID
+
 
 and, for example, configured in apache like this::
 
@@ -29,4 +30,4 @@ and, for example, configured in apache like this::
     </VirtualHost>
 
 It will store the artifacts in a per-job, per-variable-matrix folder.
-On the travis side public urls of html files will show up.
+On the travis side public urls of html and ogv files will show up.

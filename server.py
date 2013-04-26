@@ -29,8 +29,7 @@ def application(environ, start_response):
     return ('Not Found',)
 
 TRAVIS_JOB_URL = "https://api.travis-ci.org/jobs/%s.json"
-TRAVIS_BUILD_URL = "https://api.travis-ci.org/repos/%s/%s/builds/%s"
-
+TRAVIS_BUILD_URL = "https://api.travis-ci.org/builds/%s.json"
 
 def post_file(environ):
     from dropbox import DropboxCommand
@@ -51,7 +50,7 @@ def post_file(environ):
         archive.extractall()
         matches = []
         for root, dirnames, filenames in os.walk(os.path.abspath('.')):
-            for filename in fnmatch.filter(filenames, '*.html'):
+            for filename in fnmatch.filter(filenames, '*.html') + fnmatch.filter(filenames, '*.ogv'):
                 matches.append(os.path.join(root, filename))
         with closing(DropboxCommand()) as dc:
             urls = []
@@ -64,22 +63,26 @@ def post_file(environ):
 
 
 def get_destination(form):
+    travis_build_id = form['TRAVIS_BUILD_ID'].value
     travis_job_id = form['TRAVIS_JOB_ID'].value
-    job_url = TRAVIS_JOB_URL % travis_job_id
-    job_info = json.loads(urllib2.urlopen(job_url).read())
-    if isinstance(job_info['config']['env'], basestring):
-        job_env = dict([decgi(job_info['config']['env'])])
-    else:
-        job_env = dict(map(decgi, job_info['config']['env']))
-    travis_build_id = job_info['build_id']
-    # I found no explicit way to get owner/repo, so infer them from the compare_url
-    owner, repository = re.findall('github.com/([^/]+)/([^/]+)', job_info['compare_url'])[0]
-    build_url = TRAVIS_BUILD_URL % (owner, repository, travis_build_id)
+    build_url = TRAVIS_BUILD_URL % travis_build_id
     build_info = json.loads(urllib2.urlopen(build_url).read())
-    build_env = build_info['config']['env']
+    job_info = [a for a in build_info['matrix']
+                if str(a['id']) == travis_job_id][0]
+
+    build_env = build_info['config'].get('env', ())
+    job_env_list = job_info['config'].get('env', ())
+
+    if isinstance(job_env_list, basestring):
+        job_env = dict([decgi(job_env_list)])
+    else:
+        job_env = dict(map(decgi, job_env_list))
+
     env_keys = sorted(dict(map(decgi, build_env)).keys())
+    # I found no explicit way to get owner/repo, so infer them from the compare_url
+    owner, repository = re.findall('github.com/([^/]+)/([^/]+)', build_info['compare_url'])[0]
     destination = os.path.join(owner, repository, str(travis_build_id))
-    # Instead of using the job id use env values
+    # Instead of using the job id use env values to allow user URL mangling
     for key in env_keys:
         destination = os.path.join(destination, job_env[key])
     return destination
